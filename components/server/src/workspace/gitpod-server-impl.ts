@@ -396,15 +396,16 @@ export class GitpodServerImpl<Client extends GitpodClient, Server extends Gitpod
             const user = this.checkAndBlockUser();
             await this.checkTermsAcceptance();
 
-            log.info({ userId: user.id, workspaceId }, 'startWorkspace');
+            const logCtx = { userId: user.id, workspaceId };
+            log.info(logCtx, 'startWorkspace');
 
             const mayStartPromise = this.mayStartWorkspace({ span }, user, this.workspaceDb.trace({ span }).findRegularRunningInstances(user.id));
             const workspace = await this.internalGetWorkspace(workspaceId, this.workspaceDb.trace({ span }));
             await this.guardAccess({ kind: "workspace", subject: workspace }, "get");
 
             const runningInstance = await this.workspaceDb.trace({ span }).findRunningInstance(workspace.id);
-            if (runningInstance) {
-                // We already have a running workspace.
+            if (runningInstance && !options.forceDefaultImage) {
+                // We already have a running workspace, and we're not forcing the default image.
                 // Note: ownership doesn't matter here as this is basically a noop. It's not StartWorkspace's concern
                 //       to guard workspace access - just to prevent non-owners from starting workspaces.
 
@@ -432,6 +433,14 @@ export class GitpodServerImpl<Client extends GitpodClient, Server extends Gitpod
             const envVars = this.userDB.getEnvVars(user.id);
 
             await mayStartPromise;
+
+            if (runningInstance) {
+                // We already have a running workspace. This may happen if we're forcing the default image.
+                // In that case, we stop the previous first.
+                await this.internalStopWorkspace({ span }, workspaceId, workspace.ownerId).catch(err => {
+                    log.error(logCtx, "stopWorkspace error: ", err);
+                });
+            }
 
             // at this point we're about to actually start a new workspace
             return await this.workspaceStarter.startWorkspace({ span }, workspace, user, await envVars, {
