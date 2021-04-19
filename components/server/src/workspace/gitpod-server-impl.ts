@@ -186,7 +186,7 @@ export class GitpodServerImpl<Client extends GitpodClient, Server extends Gitpod
     }
 
     protected checkUser(methodName?: string, logPayload?: {}): User {
-        if (this.setupRequired) {
+        if (this.showSetupCondition?.value) {
             throw new ResponseError(ErrorCodes.SETUP_REQUIRED, 'Setup required.');
         }
         if (!this.user) {
@@ -226,12 +226,19 @@ export class GitpodServerImpl<Client extends GitpodClient, Server extends Gitpod
         return this.checkUser("getLoggedInUser");
     }
 
-    protected setupRequired: boolean = false;
+    protected showSetupCondition: { value: boolean } | undefined = undefined;
     protected async doUpdateUser(): Promise<void> {
-        const hasAnyStaticProviders = this.hostContextProvider.getAll().some(hc => hc.authProvider.config.builtin === true);
-        if (!hasAnyStaticProviders) {
-            const userCount = await this.userDB.getUserCount();
-            this.setupRequired = userCount === 0;
+
+        // execute the check for the setup to be shown until the setup is not required.
+        // cf. evaluation of the condition in `checkUser`
+        if (!this.showSetupCondition || this.showSetupCondition.value === true) {
+            const hasAnyStaticProviders = this.hostContextProvider.getAll().some(hc => hc.authProvider.config.builtin === true);
+            if (!hasAnyStaticProviders) {
+                const userCount = await this.userDB.getUserCount();
+                this.showSetupCondition = { value: userCount === 0 };
+            } else {
+                this.showSetupCondition = { value: false };
+            }
         }
 
         if (this.user) {

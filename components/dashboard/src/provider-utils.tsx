@@ -40,7 +40,7 @@ interface OpenAuthorizeWindowParams {
     host: string;
     scopes?: string[];
     onSuccess?: (payload?: string) => void;
-    onError?: (error?: string) => void;
+    onError?: (error: string | { error: string, description?: string }) => void;
 }
 
 async function openAuthorizeWindow(params: OpenAuthorizeWindowParams) {
@@ -58,8 +58,9 @@ async function openAuthorizeWindow(params: OpenAuthorizeWindowParams) {
 
     const newWindow = window.open(url, "gitpod-auth-window");
     if (!newWindow) {
-        console.log(`Failed to open the authorize window for ${host}`);
-        onError && onError("failed");
+        const errorMessage = `Failed to open the authorize window for ${host}`;
+        console.log(errorMessage);
+        onError && onError(errorMessage);
         return;
     }
 
@@ -77,12 +78,21 @@ async function openAuthorizeWindow(params: OpenAuthorizeWindowParams) {
 
         if (typeof event.data === "string" && event.data.startsWith("success")) {
             killAuthWindow();
-            onSuccess && onSuccess();
+            onSuccess && onSuccess(event.data);
         }
         if (typeof event.data === "string" && event.data.startsWith("error:")) {
-            const errorAsText = atob(event.data.substring("error:".length));
+            let error: string | { error: string, description?: string } = atob(event.data.substring("error:".length));
+            try {
+                const payload = JSON.parse(error);
+                if (typeof payload === "object" && payload.error) {
+                    error = { error: payload.error, description: payload.description };
+                }
+            } catch (error) {
+                console.log(error);
+            }
+
             killAuthWindow();
-            onError && onError(errorAsText);
+            onError && onError(error);
         }
     };
     window.addEventListener("message", eventListener);
