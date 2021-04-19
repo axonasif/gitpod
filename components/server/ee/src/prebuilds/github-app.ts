@@ -72,7 +72,7 @@ export class GithubApp extends Probot {
         this.statusMaintainer.start(async id => (await app.auth(parseInt(id))) as any as Octokit);
         // this.queueMaintainer.start();
 
-        app.route('/pbs').get('/*', async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+        options.getRouter('/pbs').get('/*', async (req: express.Request, res: express.Response, next: express.NextFunction) => {
             let status: PrebuiltWorkspaceState | 'failed' | undefined;
 
             try {
