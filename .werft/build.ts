@@ -252,17 +252,17 @@ export async function deployToDev(deploymentConfig: DeploymentConfig, workspaceF
         werft.fail('secret', err);
     }
 
-    werft.log("authProviders", "copy authProviders")
-    try {
-        exec(`kubectl get secret preview-envs-authproviders --namespace=keys -o yaml \
-                | yq r - data.authProviders \
-                | base64 -d -w 0 \
-                > authProviders`, { slice: "authProviders" });
-        exec(`yq merge --inplace .werft/values.dev.yaml ./authProviders`, { slice: "authProviders" })
-        werft.done('authProviders');
-    } catch (err) {
-        werft.fail('authProviders', err);
-    }
+    // werft.log("authProviders", "copy authProviders")
+    // try {
+    //     exec(`kubectl get secret preview-envs-authproviders --namespace=keys -o yaml \
+    //             | yq r - data.authProviders \
+    //             | base64 -d -w 0 \
+    //             > authProviders`, { slice: "authProviders" });
+    //     exec(`yq merge --inplace .werft/values.dev.yaml ./authProviders`, { slice: "authProviders" })
+    //     werft.done('authProviders');
+    // } catch (err) {
+    //     werft.fail('authProviders', err);
+    // }
     // core-dev specific section end
 
     // cleanup non-namespace objects
@@ -342,10 +342,10 @@ export async function deployToDev(deploymentConfig: DeploymentConfig, workspaceF
         werft.log('helm', 'installing Jaeger');
         exec(`/usr/local/bin/helm3 upgrade --install -f ../dev/charts/jaeger/values.yaml ${flags} jaeger ../dev/charts/jaeger`);
 
-        if (!wsCluster) {
-            werft.log('helm', 'installing Sweeper');
-            exec(`/usr/local/bin/helm3 upgrade --install --set image.version=${version} --set command="werft run github -a namespace=${namespace} --remote-job-path .werft/wipe-devstaging.yaml github.com/gitpod-io/gitpod:main" sweeper ../dev/charts/sweeper`);
-        }
+        // if (!wsCluster) {
+        //     werft.log('helm', 'installing Sweeper');
+        //     exec(`/usr/local/bin/helm3 upgrade --install --set image.version=${version} --set command="werft run github -a namespace=${namespace} --remote-job-path .werft/wipe-devstaging.yaml github.com/gitpod-io/gitpod:main" sweeper ../dev/charts/sweeper`);
+        // }
 
         werft.log('helm', 'done');
         werft.done('helm');
