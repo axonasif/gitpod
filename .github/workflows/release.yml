@@ -21,4 +21,3 @@ jobs:
         goarch: amd64
         project_path: ./dev/gpctl
         compress_assets: OFF
-        asset_name: '${BINARY_NAME}'
